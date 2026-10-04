@@ -25,13 +25,20 @@ export const Messenger: React.FC<MessengerProps> = ({
 
   const [inputText, setInputText] = useState('')
 
+  // Функция добавления нового чата с автодобавлением @c.us если нужно
   const handleAddChat = (e: React.FormEvent) => {
     e.preventDefault()
-    const phone = newPhone.trim()
-    if (phone && !chats.includes(phone)) {
+    let phone = newPhone.trim()
+    if (!phone) return
+
+    // Если пользователь не написал @c.us, добавим его автоматически
+    if (!phone.includes('@')) {
+      phone = `${phone}@c.us`
+    }
+
+    if (!chats.includes(phone)) {
       setChats([...chats, phone])
       setActiveChat(phone)
-      // Инициализируем пустой массив сообщений для нового чата, если его еще нет
       if (!messagesMap[phone]) {
         setMessagesMap((prev) => ({ ...prev, [phone]: [] }))
       }
@@ -39,25 +46,56 @@ export const Messenger: React.FC<MessengerProps> = ({
     }
   }
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  // Функция отправки сообщения через green-api
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!inputText.trim() || !activeChat) return
 
     const textToSend = inputText.trim()
     setInputText('')
 
-    // Добавляем сообщение конкретно в историю активного чата
-    setMessagesMap((prev) => {
-      const currentMessages = prev[activeChat] || []
-      return {
-        ...prev,
-        [activeChat]: [...currentMessages, { sender: 'me', text: textToSend }],
+    try {
+      // 1. Формируем URL для метода SendMessage
+      const url = `https://api.green-api.com/waInstance${idInstance}/SendMessage/${apiTokenInstance}`
+
+      // 2. Отправляем POST-запрос на сервер GREEN-API
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          chatId: activeChat,
+          message: textToSend,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Если сервер GREEN-API успешно принял сообщение, добавляем его в наш локальный чат
+        setMessagesMap((prev) => {
+          const currentMessages = prev[activeChat] || []
+          return {
+            ...prev,
+            [activeChat]: [
+              ...currentMessages,
+              { sender: 'me', text: textToSend },
+            ],
+          }
+        })
+        console.log('Сообщение успешно отправлено:', data)
+      } else {
+        console.error('Ошибка от GREEN-API:', data)
+        alert(
+          `Ошибка отправки: ${data.message || 'Не удалось отправить сообщение'}`,
+        )
       }
-    })
-
-    // Чуть позже здесь будет отправка запроса на GREEN-API (SendMessage)
+    } catch (error) {
+      console.error('Ошибка сети:', error)
+      alert('Произошла ошибка сети при отправке запроса')
+    }
   }
-
   // Получаем сообщения только для текущего активного чата
   const currentMessages = activeChat ? messagesMap[activeChat] || [] : []
 
