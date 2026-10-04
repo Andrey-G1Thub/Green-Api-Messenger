@@ -28,7 +28,7 @@ export const Messenger: React.FC<MessengerProps> = ({
   apiTokenInstance,
   onLogout,
 }) => {
-  // 1. Инициализируем стейт из localStorage
+  //   Инициализируем стейт из localStorage
   const [chats, setChats] = useState<string[]>(() =>
     getStorageItem<string[]>('green_chats', []),
   )
@@ -43,8 +43,18 @@ export const Messenger: React.FC<MessengerProps> = ({
   )
 
   const [inputText, setInputText] = useState('')
+  const isFetchingRef = useRef(false)
 
-  // 2. Эффекты для сохранения изменений в localStorage
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+  useEffect(() => {
+    scrollToBottom()
+  }, [messagesMap, activeChat])
+
+  //   Эффекты для сохранения изменений в localStorage
   useEffect(() => {
     localStorage.setItem('green_chats', JSON.stringify(chats))
   }, [chats])
@@ -122,8 +132,6 @@ export const Messenger: React.FC<MessengerProps> = ({
     }
   }
 
-  const isFetchingRef = useRef(false)
-
   // Фоновый процесс (Polling) для получения входящих сообщений
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -145,11 +153,22 @@ export const Messenger: React.FC<MessengerProps> = ({
 
         const { receiptId, body } = data
 
+        if (receiptId) {
+          const deleteUrl = `https://api.green-api.com/waInstance${idInstance}/deleteNotification/${apiTokenInstance}/${receiptId}`
+          await fetch(deleteUrl, { method: 'DELETE' })
+        }
+
         if (body && body.typeWebhook === 'incomingMessageReceived') {
           const senderData = body.senderData
           const messageData = body.messageData
+          console.log(
+            ' Пришло входящее от:',
+            senderData?.chatType,
+            senderData?.senderPhoneNumber,
+          )
 
           if (senderData && senderData.chatType === 'user') {
+            console.log(' Это личное сообщение! Данные:', body)
             const rawChatId = senderData?.chatId
             const phoneNum = senderData?.senderPhoneNumber
             const chatId = phoneNum ? `${phoneNum}@c.us` : rawChatId
@@ -189,11 +208,6 @@ export const Messenger: React.FC<MessengerProps> = ({
               })
             }
           }
-        }
-
-        if (receiptId) {
-          const deleteUrl = `https://api.green-api.com/waInstance${idInstance}/deleteNotification/${apiTokenInstance}/${receiptId}`
-          await fetch(deleteUrl, { method: 'DELETE' })
         }
       } catch (error) {
         console.error('Ошибка при получении уведомлений:', error)
@@ -302,6 +316,7 @@ export const Messenger: React.FC<MessengerProps> = ({
                   </div>
                 ))
               )}
+              <div ref={messagesEndRef} />
             </div>
 
             <form
