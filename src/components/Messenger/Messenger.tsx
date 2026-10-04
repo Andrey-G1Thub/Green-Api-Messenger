@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 
 interface MessengerProps {
   idInstance: string
@@ -96,6 +96,102 @@ export const Messenger: React.FC<MessengerProps> = ({
       alert('Произошла ошибка сети при отправке запроса')
     }
   }
+
+  const isFetchingRef = useRef(false)  
+
+  // Фоновый процесс (Polling) для получения входящих сообщений
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (isFetchingRef.current) return
+      isFetchingRef.current = true
+
+      try {
+        const receiveUrl = `https://api.green-api.com/waInstance${idInstance}/receiveNotification/${apiTokenInstance}`
+        const response = await fetch(receiveUrl)
+
+        if (!response.ok) {
+          return
+        }
+
+        const text = await response.text()
+        if (!text) {
+          return
+        }
+
+        const data = JSON.parse(text)
+        console.log('Ответ от receiveNotification:', data)
+
+        if (!data) {
+          return
+        }
+
+        const { receiptId, body } = data
+
+        // Проверяем входящее сообщение
+        if (body && body.typeWebhook === 'incomingMessageReceived') {
+          const senderData = body.senderData
+          const messageData = body.messageData
+
+          // Если это сообщение из личного чата (фильтруем по chatType === 'user')
+          if (senderData && senderData.chatType === 'user') {
+            const rawChatId = senderData?.chatId
+            const phoneNum = senderData?.senderPhoneNumber
+            const chatId = phoneNum ? `${phoneNum}@c.us` : rawChatId
+
+            const messageId = body.idMessage
+
+            const textMessage =
+              messageData?.textMessageData?.textMessage ||
+              messageData?.extendedTextMessageData?.text ||
+              (messageData?.typeMessage === 'reactionMessage'
+                ? `Реакция: ${messageData?.reactionMessageData?.reaction || '👍'}`
+                : '')
+
+            if (chatId && textMessage && messageId) {
+              // 1. Добавляем чат в список слева, если его нет
+              setChats((prevChats) => {
+                if (!prevChats.includes(chatId)) {
+                  return [...prevChats, chatId]
+                }
+                return prevChats
+              })
+
+              // 2. Добавляем сообщение с обязательным сохранением idMessage для защиты от дублей
+              setMessagesMap((prev) => {
+                const currentMessages = prev[chatId] || []
+                const isAlreadyExists = currentMessages.some(
+                  (msg: any) => msg.idMessage === messageId,
+                )
+
+                if (isAlreadyExists) return prev
+
+                return {
+                  ...prev,
+                  [chatId]: [
+                    ...currentMessages,
+                    { sender: 'them', text: textMessage, idMessage: messageId },
+                  ],
+                }
+              })
+            }
+          }
+        }
+
+        // 3. Удаляем уведомление из очереди GREEN-API
+        if (receiptId) {
+          const deleteUrl = `https://api.green-api.com/waInstance${idInstance}/deleteNotification/${apiTokenInstance}/${receiptId}`
+          await fetch(deleteUrl, { method: 'DELETE' })
+        }
+      } catch (error) {
+        console.error('Ошибка при получении уведомлений:', error)
+      } finally {
+        isFetchingRef.current = false
+      }
+    }, 4000)
+
+    return () => clearInterval(interval)
+  }, [idInstance, apiTokenInstance])
+
   // Получаем сообщения только для текущего активного чата
   const currentMessages = activeChat ? messagesMap[activeChat] || [] : []
 
