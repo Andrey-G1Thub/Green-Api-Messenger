@@ -9,6 +9,18 @@ interface MessengerProps {
 interface Message {
   sender: 'me' | 'them'
   text: string
+  idMessage?: string
+}
+
+// Вспомогательная функция для чтения из localStorage
+const getStorageItem = <T,>(key: string, defaultValue: T): T => {
+  try {
+    const item = localStorage.getItem(key)
+    return item ? JSON.parse(item) : defaultValue
+  } catch (error) {
+    console.error(`Ошибка чтения ${key} из localStorage:`, error)
+    return defaultValue
+  }
 }
 
 export const Messenger: React.FC<MessengerProps> = ({
@@ -16,28 +28,44 @@ export const Messenger: React.FC<MessengerProps> = ({
   apiTokenInstance,
   onLogout,
 }) => {
-  const [chats, setChats] = useState<string[]>([])
+  // 1. Инициализируем стейт из localStorage
+  const [chats, setChats] = useState<string[]>(() =>
+    getStorageItem<string[]>('green_chats', []),
+  )
   const [newPhone, setNewPhone] = useState('')
-  const [activeChat, setActiveChat] = useState<string | null>(null)
+  const [activeChat, setActiveChat] = useState<string | null>(() => {
+    const savedChats = getStorageItem<string[]>('green_chats', [])
+    return savedChats.length > 0 ? savedChats[0] : null
+  })
 
-  // Храним сообщения отдельно для каждого чата: ключ — номер телефона, значение — массив сообщений
-  const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>({})
+  const [messagesMap, setMessagesMap] = useState<Record<string, Message[]>>(
+    () => getStorageItem<Record<string, Message[]>>('green_messagesMap', {}),
+  )
 
   const [inputText, setInputText] = useState('')
 
-  // Функция добавления нового чата с автодобавлением @c.us если нужно
+  // 2. Эффекты для сохранения изменений в localStorage
+  useEffect(() => {
+    localStorage.setItem('green_chats', JSON.stringify(chats))
+  }, [chats])
+
+  useEffect(() => {
+    localStorage.setItem('green_messagesMap', JSON.stringify(messagesMap))
+  }, [messagesMap])
+
+  // Функция добавления нового чата
   const handleAddChat = (e: React.FormEvent) => {
     e.preventDefault()
     let phone = newPhone.trim()
     if (!phone) return
 
-    // Если пользователь не написал @c.us, добавим его автоматически
     if (!phone.includes('@')) {
       phone = `${phone}@c.us`
     }
 
     if (!chats.includes(phone)) {
-      setChats([...chats, phone])
+      const updatedChats = [...chats, phone]
+      setChats(updatedChats)
       setActiveChat(phone)
       if (!messagesMap[phone]) {
         setMessagesMap((prev) => ({ ...prev, [phone]: [] }))
@@ -55,10 +83,8 @@ export const Messenger: React.FC<MessengerProps> = ({
     setInputText('')
 
     try {
-      // 1. Формируем URL для метода SendMessage
       const url = `https://api.green-api.com/waInstance${idInstance}/SendMessage/${apiTokenInstance}`
 
-      // 2. Отправляем POST-запрос на сервер GREEN-API
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -73,7 +99,6 @@ export const Messenger: React.FC<MessengerProps> = ({
       const data = await response.json()
 
       if (response.ok) {
-        // Если сервер GREEN-API успешно принял сообщение, добавляем его в наш локальный чат
         setMessagesMap((prev) => {
           const currentMessages = prev[activeChat] || []
           return {
@@ -97,7 +122,7 @@ export const Messenger: React.FC<MessengerProps> = ({
     }
   }
 
-  const isFetchingRef = useRef(false)  
+  const isFetchingRef = useRef(false)
 
   // Фоновый процесс (Polling) для получения входящих сообщений
   useEffect(() => {
@@ -109,30 +134,21 @@ export const Messenger: React.FC<MessengerProps> = ({
         const receiveUrl = `https://api.green-api.com/waInstance${idInstance}/receiveNotification/${apiTokenInstance}`
         const response = await fetch(receiveUrl)
 
-        if (!response.ok) {
-          return
-        }
+        if (!response.ok) return
 
         const text = await response.text()
-        if (!text) {
-          return
-        }
+        if (!text) return
 
         const data = JSON.parse(text)
+        if (!data) return
         console.log('Ответ от receiveNotification:', data)
-
-        if (!data) {
-          return
-        }
 
         const { receiptId, body } = data
 
-        // Проверяем входящее сообщение
         if (body && body.typeWebhook === 'incomingMessageReceived') {
           const senderData = body.senderData
           const messageData = body.messageData
 
-          // Если это сообщение из личного чата (фильтруем по chatType === 'user')
           if (senderData && senderData.chatType === 'user') {
             const rawChatId = senderData?.chatId
             const phoneNum = senderData?.senderPhoneNumber
@@ -148,7 +164,6 @@ export const Messenger: React.FC<MessengerProps> = ({
                 : '')
 
             if (chatId && textMessage && messageId) {
-              // 1. Добавляем чат в список слева, если его нет
               setChats((prevChats) => {
                 if (!prevChats.includes(chatId)) {
                   return [...prevChats, chatId]
@@ -156,11 +171,10 @@ export const Messenger: React.FC<MessengerProps> = ({
                 return prevChats
               })
 
-              // 2. Добавляем сообщение с обязательным сохранением idMessage для защиты от дублей
               setMessagesMap((prev) => {
                 const currentMessages = prev[chatId] || []
                 const isAlreadyExists = currentMessages.some(
-                  (msg: any) => msg.idMessage === messageId,
+                  (msg) => msg.idMessage === messageId,
                 )
 
                 if (isAlreadyExists) return prev
@@ -177,7 +191,6 @@ export const Messenger: React.FC<MessengerProps> = ({
           }
         }
 
-        // 3. Удаляем уведомление из очереди GREEN-API
         if (receiptId) {
           const deleteUrl = `https://api.green-api.com/waInstance${idInstance}/deleteNotification/${apiTokenInstance}/${receiptId}`
           await fetch(deleteUrl, { method: 'DELETE' })
@@ -192,7 +205,6 @@ export const Messenger: React.FC<MessengerProps> = ({
     return () => clearInterval(interval)
   }, [idInstance, apiTokenInstance])
 
-  // Получаем сообщения только для текущего активного чата
   const currentMessages = activeChat ? messagesMap[activeChat] || [] : []
 
   return (
@@ -200,12 +212,12 @@ export const Messenger: React.FC<MessengerProps> = ({
       {/* Левая колонка: Сайдбар (Список чатов) */}
       <div className="w-1/3 border-r border-[#222d34] flex flex-col bg-[#111b21]">
         <div className="p-4 bg-[#202c33] flex justify-between items-center">
-          <span className="text-sm text-[#8696a0]">
-            idInstance: {idInstance}
+          <span className="text-sm text-[#8696a0] truncate max-w-[200px]">
+            id: {idInstance}
           </span>
           <button
             onClick={onLogout}
-            className="text-xs bg-[#2a3942] hover:bg-[#374248] px-3 py-1.5 rounded transition text-[#8696a0] hover:text-white"
+            className="text-xs bg-[#2a3942] hover:bg-[#374248] px-3 py-1.5 rounded transition text-[#8696a0] hover:text-white shrink-0"
           >
             Выйти
           </button>
@@ -219,7 +231,7 @@ export const Messenger: React.FC<MessengerProps> = ({
             type="text"
             value={newPhone}
             onChange={(e) => setNewPhone(e.target.value)}
-            placeholder="Введите номер (например, 79001234567)"
+            placeholder="Введите номер (7900...)"
             className="flex-1 rounded bg-[#2a3942] px-3 py-1.5 text-sm text-white focus:outline-none"
           />
           <button
@@ -249,7 +261,7 @@ export const Messenger: React.FC<MessengerProps> = ({
                 </div>
                 <div className="truncate">
                   <div className="font-medium text-white">{chat}</div>
-                  <div className="text-xs text-[#8696a0]">
+                  <div className="text-xs text-[#8696a0] truncate">
                     {messagesMap[chat]?.[messagesMap[chat].length - 1]?.text ||
                       'Нет сообщений'}
                   </div>
