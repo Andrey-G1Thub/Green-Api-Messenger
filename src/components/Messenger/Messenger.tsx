@@ -42,6 +42,9 @@ export const Messenger: React.FC<MessengerProps> = ({
     () => getStorageItem<Record<string, Message[]>>('green_messagesMap', {}),
   )
 
+  const [connectionStatus, setConnectionStatus] = useState<
+    'connected' | 'checking' | 'error'
+  >('connected')
   const [inputText, setInputText] = useState('')
   const isFetchingRef = useRef(false)
 
@@ -138,17 +141,30 @@ export const Messenger: React.FC<MessengerProps> = ({
       if (isFetchingRef.current) return
       isFetchingRef.current = true
 
+      setConnectionStatus('checking')
+
       try {
         const receiveUrl = `https://api.green-api.com/waInstance${idInstance}/receiveNotification/${apiTokenInstance}`
         const response = await fetch(receiveUrl)
 
-        if (!response.ok) return
+        if (!response.ok) {
+          setConnectionStatus('error')
+          return
+        }
 
         const text = await response.text()
-        if (!text) return
+        if (!text) {
+          setConnectionStatus('connected')
+          return
+        }
 
         const data = JSON.parse(text)
-        if (!data) return
+        if (!data) {
+          setConnectionStatus('connected')
+          return
+        }
+
+        setConnectionStatus('connected')
         console.log('Ответ от receiveNotification:', data)
 
         const { receiptId, body } = data
@@ -211,6 +227,7 @@ export const Messenger: React.FC<MessengerProps> = ({
         }
       } catch (error) {
         console.error('Ошибка при получении уведомлений:', error)
+        setConnectionStatus('error')
       } finally {
         isFetchingRef.current = false
       }
@@ -224,17 +241,39 @@ export const Messenger: React.FC<MessengerProps> = ({
   return (
     <div className="flex h-screen w-screen bg-[#111b21] text-[#e9edef] overflow-hidden">
       {/* Левая колонка: Сайдбар (Список чатов) */}
+
       <div className="w-1/3 border-r border-[#222d34] flex flex-col bg-[#111b21]">
-        <div className="p-4 bg-[#202c33] flex justify-between items-center">
-          <span className="text-sm text-[#8696a0] truncate max-w-[200px]">
-            id: {idInstance}
-          </span>
-          <button
-            onClick={onLogout}
-            className="text-xs bg-[#2a3942] hover:bg-[#374248] px-3 py-1.5 rounded transition text-[#8696a0] hover:text-white shrink-0"
-          >
-            Выйти
-          </button>
+        <div className="px-4 h-16 bg-[#202c33] flex justify-between items-center shrink-0 border-b border-[#222d34]">
+          {/* Индикатор статуса соединения */}
+          <div className="flex items-center gap-2 py-1.5  rounded-full text-xs">
+            <span
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                connectionStatus === 'connected'
+                  ? 'bg-[#00a884] animate-pulse'
+                  : connectionStatus === 'checking'
+                    ? 'bg-yellow-500'
+                    : 'bg-red-500'
+              }`}
+            />
+            <span className="text-[#8696a0]">
+              {connectionStatus === 'connected' && 'Подключено'}
+              {connectionStatus === 'checking' && 'Синхронизация...'}
+              {connectionStatus === 'error' && 'Ошибка связи'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="text-xs text-[#8696a0] truncate max-w-[140px]">
+              id: {idInstance}
+            </span>
+
+            <button
+              onClick={onLogout}
+              className="text-xs bg-[#2a3942] hover:bg-[#374248] px-3 py-1.5 rounded transition text-[#8696a0] hover:text-white shrink-0"
+            >
+              Выйти
+            </button>
+          </div>
         </div>
 
         <form
@@ -290,7 +329,7 @@ export const Messenger: React.FC<MessengerProps> = ({
       <div className="w-2/3 flex flex-col bg-[#0b141a]">
         {activeChat ? (
           <>
-            <div className="p-4 bg-[#202c33] border-b border-[#222d34] flex items-center">
+            <div className="px-4 h-16 bg-[#202c33] border-b border-[#222d34] flex items-center shrink-0">
               <div className="w-10 h-10 rounded-full bg-[#667781] flex items-center justify-center font-bold text-white mr-3">
                 {activeChat[0]}
               </div>
