@@ -1,13 +1,11 @@
 import { useState } from 'react'
 import { LoginScreen } from './components/components/LoginScreen/LoginScreen.tsx'
 import { Messenger } from './components/Messenger/Messenger.tsx'
+import type { AuthCredentials } from './types/index.ts'
 
 export function App() {
   // Инициализируем authData из localStorage
-  const [authData, setAuthData] = useState<{
-    idInstance: string
-    apiTokenInstance: string
-  } | null>(() => {
+  const [authData, setAuthData] = useState<AuthCredentials | null>(() => {
     const id = localStorage.getItem('green_idInstance')
     const token = localStorage.getItem('green_apiTokenInstance')
     if (id && token) {

@@ -1,17 +1,21 @@
 import React, { useState } from 'react'
+import type { AuthCredentials } from '../../../types/index.ts'
 
 interface LoginScreenProps {
-  onLogin: (idInstance: string, apiTokenInstance: string) => void
+  onLogin: (credentials: AuthCredentials) => void
 }
 
 export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
-  const [idInstance, setIdInstance] = useState('')
-  const [apiTokenInstance, setApiTokenInstance] = useState('')
+  const [idInstance, setIdInstance] = useState<string>('')
+  const [apiTokenInstance, setApiTokenInstance] = useState<string>('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (idInstance.trim() && apiTokenInstance.trim()) {
-      onLogin(idInstance.trim(), apiTokenInstance.trim())
+      onLogin({
+        idInstance: idInstance.trim(),
+        apiTokenInstance: apiTokenInstance.trim(),
+      })
     }
   }
 

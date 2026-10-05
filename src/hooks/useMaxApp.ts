@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
-
-export interface Message {
-  sender: 'me' | 'them'
-  text: string
-  idMessage?: string
-}
+import type {
+  Message,
+  GreenApiResponse,
+  ConnectionStatus,
+  SendMessageResponse,
+} from '../types/index.ts'
 
 // Вспомогательная функция для чтения из localStorage
 const getStorageItem = <T>(key: string, defaultValue: T): T => {
@@ -32,13 +32,10 @@ export const useMaxApp = (idInstance: string, apiTokenInstance: string) => {
     () => getStorageItem<Record<string, Message[]>>('green_messagesMap', {}),
   )
 
-  const [connectionStatus, setConnectionStatus] = useState<
-    'connected' | 'checking' | 'error'
-  >('connected')
-  const [inputText, setInputText] = useState('')
-  const isFetchingRef = useRef(false)
-
-
+  const [connectionStatus, setConnectionStatus] =
+    useState<ConnectionStatus>('connected')
+  const [inputText, setInputText] = useState<string>('')
+  const isFetchingRef = useRef<boolean>(false)
 
   //   Эффекты для сохранения изменений в localStorage
   useEffect(() => {
@@ -70,7 +67,8 @@ export const useMaxApp = (idInstance: string, apiTokenInstance: string) => {
     }
   }
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  // Отправка сообщения
+  const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     if (!inputText.trim() || !activeChat) return
 
@@ -91,7 +89,7 @@ export const useMaxApp = (idInstance: string, apiTokenInstance: string) => {
         }),
       })
 
-      const data = await response.json()
+      const data: SendMessageResponse = await response.json()
 
       if (response.ok) {
         setMessagesMap((prev) => {
@@ -140,7 +138,8 @@ export const useMaxApp = (idInstance: string, apiTokenInstance: string) => {
           return
         }
 
-        const data = JSON.parse(text)
+        const data: GreenApiResponse = JSON.parse(text)
+
         if (!data) {
           setConnectionStatus('connected')
           return

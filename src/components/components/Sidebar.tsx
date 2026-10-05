@@ -1,5 +1,5 @@
 import React from 'react'
-import type { Message } from '../../hooks/useMaxApp'
+import type { Message } from '../../types/index.ts'
 
 interface SidebarProps {
   idInstance: string
@@ -10,7 +10,7 @@ interface SidebarProps {
   messagesMap: Record<string, Message[]>
   setNewPhone: (value: string) => void
   setActiveChat: (chat: string) => void
-  handleAddChat: (e: React.FormEvent) => void
+  handleAddChat: (e: React.FormEvent<HTMLFormElement>) => void
   onLogout: () => void
 }
 

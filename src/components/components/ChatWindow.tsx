@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react'
-import type { Message } from '../../hooks/useMaxApp'
+import type { Message } from '../../types/index.ts'
 
 interface ChatWindowProps {
   activeChat: string | null
   currentMessages: Message[]
   inputText: string
   setInputText: (value: string) => void
-  handleSendMessage: (e: React.FormEvent) => void
+  handleSendMessage: (e: React.FormEvent<HTMLFormElement>) => void
 }
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({
