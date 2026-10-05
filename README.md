@@ -26,12 +26,15 @@
    git clone [https://github.com/Andrey-G1Thub/Green-Api-Messenger.git](https://github.com/Andrey-G1Thub/Green-Api-Messenger.git)
 
 2. **Перейдите в папку проекта:**
-   cd Green-Api-Messenger
+
+  - cd Green-Api-Messenger
 
 3. **Установите зависимости:**
-   npm install
+
+  - npm install
 
 4. **Запустите проект в режиме разработки:**
-   npm run dev
+
+  - npm run dev
 
 5. Откройте в браузере ссылку, указанную в терминале (обычно http://localhost:5173).
