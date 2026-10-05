@@ -1,75 +1,37 @@
-# React + TypeScript + Vite
+# MaxApp Messenger (GREEN-API Integration)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Клиентское веб-приложение для обмена сообщениями через MAX с использованием **GREEN-API**. Проект разработан в рамках тестового задания на позицию **Frontend Developer (React)**.
 
-Currently, two official plugins are available:
+## Стек технологий
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React** (функциональные компоненты, кастомные хуки)
+- **TypeScript** (строгая типизация всей кодовой базы и API-ответов)
+- **Vite** (быстрая сборка и разработка)
+- **Tailwind CSS** (адаптивная стилизация по мотивам WhatsApp Web)
+- **GREEN-API** (интеграция для авторизации, проверки статусов и обмена сообщениями)
 
-## React Compiler
+## Основной функционал
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Авторизация:** Вход в систему по учетным данным `idInstance` и `apiTokenInstance` из личного кабинета GREEN-API.
+- **Управление чатами:** Добавление новых чатов по номеру телефона и переключение между ними.
+- **Обмен сообщениями:** Отправка и получение текстовых сообщений в реальном времени с использованием методов `sendMessage` и технологии HTTP API.
+- **Статус соединения:** Индикатор текущего состояния подключения к шлюзу.
 
-## Expanding the ESLint configuration
+## Локальный запуск проекта
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Для запуска проекта выполните следующие шаги:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. **Клонируйте репозиторий:**
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+   git clone [https://github.com/Andrey-G1Thub/Green-Api-Messenger.git](https://github.com/Andrey-G1Thub/Green-Api-Messenger.git)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+2. ** Перейдите в папку проекта:**
+   cd Green-Api-Messenger
 
-```
+3. ** Установите зависимости:**
+   npm install
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+4. ** Запустите проект в режиме разработки:**
+   npm run dev
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
-```
+5. Откройте в браузере ссылку, указанную в терминале (обычно http://localhost:5173).

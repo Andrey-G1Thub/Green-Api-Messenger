@@ -102,7 +102,6 @@ export const useMaxApp = (idInstance: string, apiTokenInstance: string) => {
             ],
           }
         })
-        console.log('Сообщение успешно отправлено:', data)
       } else {
         console.error('Ошибка от GREEN-API:', data)
         alert(
@@ -146,7 +145,6 @@ export const useMaxApp = (idInstance: string, apiTokenInstance: string) => {
         }
 
         setConnectionStatus('connected')
-        console.log('Ответ от receiveNotification:', data)
 
         const { receiptId, body } = data
 
@@ -158,14 +156,8 @@ export const useMaxApp = (idInstance: string, apiTokenInstance: string) => {
         if (body && body.typeWebhook === 'incomingMessageReceived') {
           const senderData = body.senderData
           const messageData = body.messageData
-          console.log(
-            ' Пришло входящее от:',
-            senderData?.chatType,
-            senderData?.senderPhoneNumber,
-          )
 
           if (senderData && senderData.chatType === 'user') {
-            console.log(' Это личное сообщение! Данные:', body)
             const rawChatId = senderData?.chatId
             const phoneNum = senderData?.senderPhoneNumber
             const chatId = phoneNum ? `${phoneNum}@c.us` : rawChatId

@@ -15,10 +15,10 @@ export function App() {
   })
 
   // Функция входа
-  const handleLogin = (idInstance: string, apiTokenInstance: string) => {
-    localStorage.setItem('green_idInstance', idInstance)
-    localStorage.setItem('green_apiTokenInstance', apiTokenInstance)
-    setAuthData({ idInstance, apiTokenInstance })
+  const handleLogin = (credentials: AuthCredentials) => {
+    localStorage.setItem('green_idInstance', credentials.idInstance)
+    localStorage.setItem('green_apiTokenInstance', credentials.apiTokenInstance)
+    setAuthData(credentials)
   }
 
   // Функция выхода (очищает localStorage)
