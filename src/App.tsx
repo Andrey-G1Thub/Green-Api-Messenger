@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LoginScreen } from './components/LoginScreen/LoginScreen.tsx'
+import { LoginScreen } from './components/components/LoginScreen/LoginScreen.tsx'
 import { Messenger } from './components/Messenger/Messenger.tsx'
 
 export function App() {
